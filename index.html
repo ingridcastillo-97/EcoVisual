@@ -31,7 +31,7 @@
             overflow: hidden;
         }
 
-        /* Animación de parpadeo continuo para captar la atención de reojo */
+        /* Animación de parpadeo continuo */
         @keyframes parpadeo {
             0% { opacity: 1; }
             50% { opacity: 0.5; }
@@ -47,7 +47,6 @@
             text-align: center;
         }
 
-        /* Contenedor del Widget Central */
         #widget-contenedor {
             background-color: rgba(255, 255, 255, 0.1);
             border: 2px solid rgba(255, 255, 255, 0.2);
@@ -90,7 +89,6 @@
             transform: scale(1.05);
         }
 
-        /* Barra Inferior con la precisión total requerida por la rúbrica */
         footer {
             background-color: rgba(0, 0, 0, 0.7);
             width: 100%;
@@ -135,13 +133,11 @@
     </footer>
 
     <script>
-        // Enlace oficial de tu modelo exportado
         const URL_MODELO = "https://teachablemachine.withgoogle.com/models/St1g-0mJP/";
 
         let classifier;
 
         function preload() {
-            // Cargar el modelo usando la librería ml5.js
             classifier = ml5.soundClassifier(URL_MODELO + 'model.json');
         }
 
@@ -155,7 +151,6 @@
             classifier.classify(gotResult);
         }
 
-        // Esta función procesa los resultados del micrófono constantemente
         function gotResult(error, results) {
             if (error) {
                 console.error(error);
@@ -163,30 +158,37 @@
             }
             
             const contenedorLista = document.getElementById('precisiones-lista');
-            contenedorLista.innerHTML = ''; // Limpiar panel anterior
+            contenedorLista.innerHTML = ''; 
 
-            // El primer elemento (index 0) siempre contiene el sonido más fuerte detectado por ml5
-            const sonidoGanador = results[0].label;
-            const precisionGanador = results[0].confidence;
+            let sonidoPorActivar = null;
+            let maximaConfianza = 0;
 
-            // 1. Renderizar todos los porcentajes en el footer para cumplir la rúbrica
+            // 1. Recorremos TODOS los resultados devueltos
             for (let i = 0; i < results.length; i++) {
                 const nombreClase = results[i].label;
                 const precision = results[i].confidence;
                 const porcentaje = (precision * 100).toFixed(1) + '%';
+                
                 contenedorLista.innerHTML += `<div class="clase-barra"><strong>${nombreClase}:</strong> ${porcentaje}</div>`;
+
+                // Convertimos a minúsculas y limpiamos espacios para evitar errores de escritura
+                const claseLimpia = nombreClase.toLowerCase().trim();
+
+                // 2. Si es un sonido de alerta, supera el 50% y es el más alto detectado entre las alertas
+                if (claseLimpia !== "ruido de fondo" && precision > 0.50 && precision > maximaConfianza) {
+                    maximaConfianza = precision;
+                    sonidoPorActivar = claseLimpia;
+                }
             }
 
-            // 2. Evaluar el sonido ganador con el nuevo umbral ajustado al 50% (0.50)
-            if (precisionGanador > 0.50 && sonidoGanador !== "Ruido de fondo") {
-                activarAlerta(sonidoGanador);
+            // 3. Tomar la decisión final tras evaluar todo el panorama del micrófono
+            if (sonidoPorActivar) {
+                activarAlerta(sonidoPorActivar);
             } else {
-                // Si domina el Ruido de fondo o el sonido no alcanza el 50%
                 resetearAlerta();
             }
         }
 
-        // Aplica los códigos de color solicitados cubriendo toda la pantalla y parpadeando
         function activarAlerta(clase) {
             const body = document.body;
             const emoji = document.getElementById('emoji-display');
@@ -194,26 +196,26 @@
 
             body.classList.add('parpadear');
 
-            if (clase === "puerta") {
+            // Buscamos coincidencias parciales (así "ladrido", "Ladrido" o "Ladrido de perro" funcionarán igual)
+            if (clase.includes("puerta")) {
                 body.style.backgroundColor = "var(--bg-puerta)";
                 emoji.innerText = "🚪";
                 texto.innerText = "¡Están tocando la puerta!";
-            } else if (clase === "timbre") {
+            } else if (clase.includes("timbre")) {
                 body.style.backgroundColor = "var(--bg-timbre)";
                 emoji.innerText = "🔔";
                 texto.innerText = "¡El timbre está sonando!";
-            } else if (clase === "ladrido") {
+            } else if (clase.includes("ladrido")) {
                 body.style.backgroundColor = "var(--bg-ladrido)";
                 emoji.innerText = "🐕";
                 texto.innerText = "¡Ladrido de perro detectado!";
-            } else if (clase === "electrodomestico") {
+            } else if (clase.includes("electrodomestico") || clase.includes("electrodoméstico")) {
                 body.style.backgroundColor = "var(--bg-electro)";
                 emoji.innerText = "🍳";
                 texto.innerText = "¡Alerta de Electrodoméstico!";
             }
         }
 
-        // Retorna al gris neutro sutil cuando todo está en silencio
         function resetearAlerta() {
             const body = document.body;
             body.classList.remove('parpadear');
