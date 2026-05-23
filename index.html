@@ -178,14 +178,14 @@
 
                 contenedorLista.innerHTML += `<div class="clase-barra"><strong>${nombreClase}:</strong> ${porcentaje}</div>`;
 
-                // Si la confianza supera el 70% (0.70) y NO es el "Ruido de fondo"
-                if (precision > 0.70 && nombreClase !== "Ruido de fondo") {
+                // Si la confianza supera el 50% (0.50) y NO es el "Ruido de fondo"
+                if (precision > 0.50 && nombreClase !== "Ruido de fondo") {
                     activarAlerta(nombreClase);
                     alertaActiva = true;
                 }
             }
 
-            // Si domina el "Ruido de fondo" o ningún sonido crítico supera el 70%, vuelve al estado neutro
+            // Si domina el "Ruido de fondo" o ningún sonido crítico supera el 50%, vuelve al estado neutro
             if (!alertaActiva) {
                 resetearAlerta();
             }
@@ -224,7 +224,7 @@
             body.classList.remove('parpadear');
             body.style.backgroundColor = "var(--bg-silencio)";
             document.getElementById('emoji-display').innerText = "🤫";
-            document.getElementById('estado-texto').innerText = "Todo en silencio (Ruido de fondo)";
+            document.getElementById('estado-texto').innerText = "Todo en silencio";
         }
     </script>
 </body>
