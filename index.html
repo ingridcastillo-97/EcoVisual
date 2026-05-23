@@ -131,8 +131,7 @@
     </div>
 
     <footer>
-        <div id="precisiones-lista">
-            </div>
+        <div id="precisiones-lista"></div>
     </footer>
 
     <script>
@@ -147,12 +146,10 @@
         }
 
         function setup() {
-            // No se crea lienzo (canvas) ya que la interfaz es puramente HTML/CSS dinámico
             noCanvas();
         }
 
         function init() {
-            // Ocultar botón y arrancar la clasificación en tiempo real
             document.getElementById('btn-iniciar').style.display = 'none';
             document.getElementById('estado-texto').innerText = "Escuchando ambiente...";
             classifier.classify(gotResult);
@@ -168,25 +165,23 @@
             const contenedorLista = document.getElementById('precisiones-lista');
             contenedorLista.innerHTML = ''; // Limpiar panel anterior
 
-            let alertaActiva = false;
+            // El primer elemento (index 0) siempre contiene el sonido más fuerte detectado por ml5
+            const sonidoGanador = results[0].label;
+            const precisionGanador = results[0].confidence;
 
-            // Renderizar los porcentajes de precisión en el footer
+            // 1. Renderizar todos los porcentajes en el footer para cumplir la rúbrica
             for (let i = 0; i < results.length; i++) {
                 const nombreClase = results[i].label;
                 const precision = results[i].confidence;
                 const porcentaje = (precision * 100).toFixed(1) + '%';
-
                 contenedorLista.innerHTML += `<div class="clase-barra"><strong>${nombreClase}:</strong> ${porcentaje}</div>`;
-
-                // Si la confianza supera el 50% (0.50) y NO es el "Ruido de fondo"
-                if (precision > 0.50 && nombreClase !== "Ruido de fondo") {
-                    activarAlerta(nombreClase);
-                    alertaActiva = true;
-                }
             }
 
-            // Si domina el "Ruido de fondo" o ningún sonido crítico supera el 50%, vuelve al estado neutro
-            if (!alertaActiva) {
+            // 2. Evaluar el sonido ganador con el nuevo umbral ajustado al 50% (0.50)
+            if (precisionGanador > 0.50 && sonidoGanador !== "Ruido de fondo") {
+                activarAlerta(sonidoGanador);
+            } else {
+                // Si domina el Ruido de fondo o el sonido no alcanza el 50%
                 resetearAlerta();
             }
         }
