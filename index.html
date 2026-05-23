@@ -12,7 +12,7 @@
             --bg-silencio: #2c3e50;
             --bg-puerta: #d35400; /* Marrón/Naranja */
             --bg-timbre: #2980b9; /* Azul Brillante */
-            --bg-ladrido: #27ae60; /* Verde Llamativo */
+            --bg-perro: #27ae60; /* Verde Llamativo */
             --bg-electro: #8e44ad; /* Púrpura/Morado */
         }
 
@@ -196,7 +196,6 @@
 
             body.classList.add('parpadear');
 
-            // Buscamos coincidencias parciales (así "ladrido", "Ladrido" o "Ladrido de perro" funcionarán igual)
             if (clase.includes("puerta")) {
                 body.style.backgroundColor = "var(--bg-puerta)";
                 emoji.innerText = "🚪";
@@ -206,7 +205,7 @@
                 emoji.innerText = "🔔";
                 texto.innerText = "¡El timbre está sonando!";
             } else if (clase.includes("perro")) {
-                body.style.backgroundColor = "var(--bg-ladrido)";
+                body.style.backgroundColor = "var(--bg-perro)";
                 emoji.innerText = "🐕";
                 texto.innerText = "¡Ladrido de perro detectado!";
             } else if (clase.includes("electrodomestico") || clase.includes("electrodoméstico")) {
