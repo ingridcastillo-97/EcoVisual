@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alerta Visual para Personas Sordas</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ml5@0.12.2/dist/ml5.min.js"></script>
+    
+    <style>
+        :root {
+            --bg-silencio: #2c3e50;
+            --bg-puerta: #d35400; /* Marrón/Naranja */
+            --bg-timbre: #2980b9; /* Azul Brillante */
+            --bg-ladrido: #27ae60; /* Verde Llamativo */
+            --bg-electro: #8e44ad; /* Púrpura/Morado */
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-silencio);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            height: 100vh;
+            transition: background-color 0.3s ease;
+            overflow: hidden;
+        }
+
+        /* Animación de parpadeo continuo para captar la atención de reojo */
+        @keyframes parpadeo {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .parpadear {
+            animation: parpadeo 0.5s infinite;
+        }
+
+        header {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        /* Contenedor del Widget Central */
+        #widget-contenedor {
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+            width: 80%;
+        }
+
+        #emoji-display {
+            font-size: 120px;
+            margin: 20px 0;
+            display: block;
+        }
+
+        #estado-texto {
+            font-size: 24px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        #btn-iniciar {
+            background-color: #44bd32;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: transform 0.2s;
+        }
+
+        #btn-iniciar:hover {
+            transform: scale(1.05);
+        }
+
+        /* Barra Inferior con la precisión total requerida por la rúbrica */
+        footer {
+            background-color: rgba(0, 0, 0, 0.7);
+            width: 100%;
+            padding: 15px 0;
+            backdrop-filter: blur(5px);
+        }
+
+        #precisiones-lista {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 10px;
+        }
+
+        .clase-barra {
+            font-size: 14px;
+            margin: 5px 10px;
+            background: rgba(255,255,255,0.1);
+            padding: 5px 15px;
+            border-radius: 15px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Asistente de Alerta Auditiva Visual</h1>
+        <p>Sistema de reconocimiento automático para el hogar</p>
+    </header>
+
+    <div id="widget-contenedor">
+        <button id="btn-iniciar" onclick="init()">Iniciar Escucha</button>
+        <span id="emoji-display">🤫</span>
+        <div id="estado-texto">Esperando inicio...</div>
+    </div>
+
+    <footer>
+        <div id="precisiones-lista">
+            </div>
+    </footer>
+
+    <script>
+        // Enlace oficial de tu modelo exportado
+        const URL_MODELO = "https://teachablemachine.withgoogle.com/models/St1g-0mJP/";
+
+        let classifier;
+
+        function preload() {
+            // Cargar el modelo usando la librería ml5.js
+            classifier = ml5.soundClassifier(URL_MODELO + 'model.json');
+        }
+
+        function setup() {
+            // No se crea lienzo (canvas) ya que la interfaz es puramente HTML/CSS dinámico
+            noCanvas();
+        }
+
+        function init() {
+            // Ocultar botón y arrancar la clasificación en tiempo real
+            document.getElementById('btn-iniciar').style.display = 'none';
+            document.getElementById('estado-texto').innerText = "Escuchando ambiente...";
+            classifier.classify(gotResult);
+        }
+
+        // Esta función procesa los resultados del micrófono constantemente
+        function gotResult(error, results) {
+            if (error) {
+                console.error(error);
+                return;
+            }
+            
+            const contenedorLista = document.getElementById('precisiones-lista');
+            contenedorLista.innerHTML = ''; // Limpiar panel anterior
+
+            let alertaActiva = false;
+
+            // Renderizar los porcentajes de precisión en el footer
+            for (let i = 0; i < results.length; i++) {
+                const nombreClase = results[i].label;
+                const precision = results[i].confidence;
+                const porcentaje = (precision * 100).toFixed(1) + '%';
+
+                contenedorLista.innerHTML += `<div class="clase-barra"><strong>${nombreClase}:</strong> ${porcentaje}</div>`;
+
+                // Si la confianza supera el 70% (0.70) y NO es el "Ruido de fondo"
+                if (precision > 0.70 && nombreClase !== "Ruido de fondo") {
+                    activarAlerta(nombreClase);
+                    alertaActiva = true;
+                }
+            }
+
+            // Si domina el "Ruido de fondo" o ningún sonido crítico supera el 70%, vuelve al estado neutro
+            if (!alertaActiva) {
+                resetearAlerta();
+            }
+        }
+
+        // Aplica los códigos de color solicitados cubriendo toda la pantalla y parpadeando
+        function activarAlerta(clase) {
+            const body = document.body;
+            const emoji = document.getElementById('emoji-display');
+            const texto = document.getElementById('estado-texto');
+
+            body.classList.add('parpadear');
+
+            if (clase === "puerta") {
+                body.style.backgroundColor = "var(--bg-puerta)";
+                emoji.innerText = "🚪";
+                texto.innerText = "¡Están tocando la puerta!";
+            } else if (clase === "timbre") {
+                body.style.backgroundColor = "var(--bg-timbre)";
+                emoji.innerText = "🔔";
+                texto.innerText = "¡El timbre está sonando!";
+            } else if (clase === "ladrido") {
+                body.style.backgroundColor = "var(--bg-ladrido)";
+                emoji.innerText = "🐕";
+                texto.innerText = "¡Ladrido de perro detectado!";
+            } else if (clase === "electrodomestico") {
+                body.style.backgroundColor = "var(--bg-electro)";
+                emoji.innerText = "🍳";
+                texto.innerText = "¡Alerta de Electrodoméstico!";
+            }
+        }
+
+        // Retorna al gris neutro sutil cuando todo está en silencio
+        function resetearAlerta() {
+            const body = document.body;
+            body.classList.remove('parpadear');
+            body.style.backgroundColor = "var(--bg-silencio)";
+            document.getElementById('emoji-display').innerText = "🤫";
+            document.getElementById('estado-texto').innerText = "Todo en silencio (Ruido de fondo)";
+        }
+    </script>
+</body>
+</html>
