@@ -163,7 +163,6 @@
             let sonidoPorActivar = null;
             let maximaConfianza = 0;
 
-            // 1. Recorremos TODOS los resultados devueltos
             for (let i = 0; i < results.length; i++) {
                 const nombreClase = results[i].label;
                 const precision = results[i].confidence;
@@ -171,17 +170,14 @@
                 
                 contenedorLista.innerHTML += `<div class="clase-barra"><strong>${nombreClase}:</strong> ${porcentaje}</div>`;
 
-                // Convertimos a minúsculas y limpiamos espacios para evitar errores de escritura
                 const claseLimpia = nombreClase.toLowerCase().trim();
 
-                // 2. Si es un sonido de alerta, supera el 50% y es el más alto detectado entre las alertas
                 if (claseLimpia !== "ruido de fondo" && precision > 0.50 && precision > maximaConfianza) {
                     maximaConfianza = precision;
                     sonidoPorActivar = claseLimpia;
                 }
             }
 
-            // 3. Tomar la decisión final tras evaluar todo el panorama del micrófono
             if (sonidoPorActivar) {
                 activarAlerta(sonidoPorActivar);
             } else {
